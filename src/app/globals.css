@@ -1,35 +1,43 @@
 @import "tailwindcss";
 
-:root {
-  --navy:       #0F2B5B;
-  --navy-light: #1A3560;
-  --blue:       #1E6FD9;
-  --blue-light: #EFF6FF;
-  --green:      #0D7A3E;
-  --orange:     #C8500A;
-  --red:        #B91C1C;
-  --surface:    #F8FAFC;
-  --card:       #FFFFFF;
-  --border:     #E2E8F0;
-  --text:       #0F172A;
-  --muted:      #475569;
-  --disabled:   #94A3B8;
+@theme inline {
+  --font-sans:    var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-jakarta), system-ui, sans-serif;
+  --font-mono:    var(--font-mono-jetbrains), ui-monospace, monospace;
+
+  --color-navy:        #0F2B5B;
+  --color-navy-light:  #1A3560;
+  --color-blue:        #1E6FD9;
+  --color-blue-light:  #EFF6FF;
+  --color-green:       #0D7A3E;
+  --color-orange:      #C8500A;
+  --color-red:         #B91C1C;
+  --color-surface:     #F8FAFC;
+  --color-border:      #E2E8F0;
+  --color-muted:       #475569;
+  --color-disabled:    #94A3B8;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+}
 
 body {
-  background: var(--surface);
-  color: var(--text);
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
-
-*:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
+::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
