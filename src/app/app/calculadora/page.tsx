@@ -2,7 +2,7 @@
 import { useState } from "react"
 import { Calculator, Search, FileText, MessageCircle, ChevronRight, Info } from "lucide-react"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://193.122.138.87.nip.io"
+const API_BASE = "/api/tb"
 
 const fmt    = (v: number) => "$ " + v.toLocaleString("es-BO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtBob = (v: number) => "Bs. " + v.toLocaleString("es-BO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -53,8 +53,7 @@ export default function CalculadoraPage() {
     if (!nandina || nandina.length < 4) return
     setBuscando(true)
     try {
-      const r = await fetch(`${API_BASE}/api/nandina?q=${encodeURIComponent(nandina)}`)
-      const d = await r.json()
+      const d = await fetch(`${API_BASE}/nandina?q=${encodeURIComponent(nandina)}`, { headers: { Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("tb_token") || "" : ""}` } }).then(r => r.json())
       if (d.results?.[0]) {
         const item = d.results[0]
         setGaPct(String(parseFloat(item.ga) || 0))

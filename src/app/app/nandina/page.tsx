@@ -2,7 +2,8 @@
 import { useState, useRef } from "react"
 import { Search, Calculator, AlertTriangle, ChevronDown, X } from "lucide-react"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://193.122.138.87.nip.io"
+import { api } from "@/lib/api"
+const API_BASE = "/api/tb"
 
 type NandinaItem = {
   codigo: string; descripcion: string
@@ -25,8 +26,7 @@ export default function NandinaPage() {
     if (!q.trim() || q.length < 2) return
     setLoading(true); setShowSuggest(false); setSearched(true)
     try {
-      const r = await fetch(`${API_BASE}/api/nandina?q=${encodeURIComponent(q)}`)
-      const d = await r.json()
+      const d = await api.get(`/nandina?q=${encodeURIComponent(q)}`)
       setResults(d.results || [])
     } catch { setResults([]) }
     setLoading(false)
@@ -38,8 +38,7 @@ export default function NandinaPage() {
     if (val.length < 2) { setSuggestions([]); setShowSuggest(false); return }
     debounceRef.current = setTimeout(async () => {
       try {
-        const r = await fetch(`${API_BASE}/api/nandina/suggest?q=${encodeURIComponent(val)}`)
-        const d = await r.json()
+        const d = await api.get(`/nandina/suggest?q=${encodeURIComponent(val)}`)
         setSuggestions(d.suggestions || [])
         setShowSuggest((d.suggestions || []).length > 0)
       } catch {}
