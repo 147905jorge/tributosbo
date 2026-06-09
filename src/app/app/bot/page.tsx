@@ -45,10 +45,9 @@ export default function BotPage() {
         fuentes: r.fuentes || []
       }])
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
       setMensajes(prev => [...prev, {
         rol: "bot",
-        texto: `Error: ${msg}`,
+        texto: "Error al consultar el asistente. Intenta nuevamente.",
         error: true
       }])
     }
