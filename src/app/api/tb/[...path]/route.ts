@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 const ORACLE = "https://193.122.138.87.nip.io/tb"
 
