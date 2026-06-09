@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 export const maxDuration = 60
 
-const ORACLE = "https://193.122.138.87.nip.io/tb"
+const ORACLE = "https://ayudabolivia.com/tb"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   return proxy(req, await params)
