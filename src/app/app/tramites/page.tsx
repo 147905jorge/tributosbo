@@ -1,12 +1,18 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Shield, Search, Plus, RefreshCw, Clock, FileText, Package, X, Loader2, Trash2 } from "lucide-react"
+import { Shield, Search, Plus, RefreshCw, Clock, FileText, MessageCircle, X, Loader2, Trash2, Check } from "lucide-react"
 import { api } from "@/lib/api"
 
 type Canal = "VERDE"|"AMARILLO"|"ROJO"|"PENDIENTE"|"LEVANTADO"|"OBSERVADO"
 type Tramite = {
   id: string; dim: string; cliente_id: string|null; cliente_nombre: string|null
   tipo: string; canal: Canal; aduana: string; mercaderia: string; fecha: string; creado_en: string
+  estado: string; gestion: string; nro_carpeta: string; descripcion: string
+}
+const ESTADOS_TRAMITE = ["Recibido","En Proceso","Validado","Con Levante","Tributo Pagado","Retirada","Anulado"]
+const ESTADO_COLOR: Record<string,string> = {
+  Recibido:"#475569", "En Proceso":"#1E6FD9", Validado:"#0891b2",
+  "Con Levante":"#0D7A3E", "Tributo Pagado":"#7c3aed", Retirada:"#6b7280", Anulado:"#B91C1C"
 }
 type Evento = { id: string; tramite_id: string; estado: string; obs: string; creado_en: string }
 
@@ -16,7 +22,7 @@ const CANAL_COLOR: Record<Canal, string> = {
 }
 const CANALES: Canal[] = ["PENDIENTE","VERDE","AMARILLO","ROJO","LEVANTADO","OBSERVADO"]
 
-const FORM_INIT = { dim:"", tipo:"Importacion", canal:"PENDIENTE" as Canal, aduana:"", mercaderia:"", fecha:"" }
+const FORM_INIT = { dim:"", tipo:"Importacion", canal:"PENDIENTE" as Canal, aduana:"", mercaderia:"", fecha:"", gestion: new Date().getFullYear().toString(), nro_carpeta:"", descripcion:"" }
 
 export default function TramitesPage() {
   const [tramites,  setTramites]  = useState<Tramite[]>([])
@@ -29,6 +35,11 @@ export default function TramitesPage() {
   const [form,      setForm]      = useState(FORM_INIT)
   const [saving,    setSaving]    = useState(false)
   const [nuevoEvt,  setNuevoEvt]  = useState("")
+  const [showWa,    setShowWa]    = useState(false)
+  const [waTel,     setWaTel]     = useState("")
+  const [waMsg,     setWaMsg]     = useState("")
+  const [sendingWa, setSendingWa] = useState(false)
+  const [waOk,      setWaOk]      = useState(false)
 
   useEffect(() => { cargar() }, [])
 
@@ -64,6 +75,35 @@ export default function TramitesPage() {
       const evts = await api.get(`/tramites/${selected.id}/eventos`)
       setEventos(evts)
     } catch {}
+  }
+
+  async function actualizarEstado(estado: string) {
+    if (!selected) return
+    try {
+      const updated = await api.put(`/tramites/${selected.id}`, { estado })
+      setTramites(prev => prev.map(t => t.id === selected.id ? { ...t, estado } : t))
+      setSelected(prev => prev ? { ...prev, estado } : null)
+      const evts = await api.get(`/tramites/${selected.id}/eventos`)
+      setEventos(evts)
+    } catch {}
+  }
+
+  function abrirWa(t: Tramite) {
+    setWaTel("")
+    setWaMsg(`Estimado cliente, su trámite ${t.dim} está en canal ${t.canal}${t.aduana ? ` en aduana ${t.aduana}` : ""}. Para más información contáctenos.`)
+    setShowWa(true)
+  }
+
+  async function enviarWa() {
+    if (!waTel || !waMsg) return
+    setSendingWa(true)
+    try {
+      const r = await api.post("/whatsapp/enviar", { telefono: waTel, mensaje: waMsg })
+      if (r.url) window.open(r.url, "_blank")
+      setWaOk(true)
+      setTimeout(() => { setWaOk(false); setShowWa(false) }, 2000)
+    } catch { alert("Error enviando WhatsApp") }
+    setSendingWa(false)
   }
 
   async function agregarEvento() {
@@ -180,10 +220,12 @@ export default function TramitesPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   {[
-                    { l: "Aduana",     v: selected.aduana    || "—" },
-                    { l: "Fecha",      v: selected.fecha             },
-                    { l: "Mercadería", v: selected.mercaderia || "—" },
-                    { l: "Estado",     v: selected.canal             },
+                    { l: "Aduana",     v: selected.aduana     || "—" },
+                    { l: "Fecha",      v: selected.fecha              },
+                    { l: "Gestion",    v: selected.gestion    || "—" },
+                    { l: "Carpeta",    v: selected.nro_carpeta|| "—" },
+                    { l: "Mercaderia", v: selected.mercaderia || "—" },
+                    { l: "Descripcion",v: selected.descripcion|| "—" },
                   ].map(row => (
                     <div key={row.l} className="bg-[#F8FAFC] rounded-lg p-3">
                       <div className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">{row.l}</div>
@@ -191,9 +233,22 @@ export default function TramitesPage() {
                     </div>
                   ))}
                 </div>
-                {/* Cambiar canal */}
+                {/* Estado ciclo de vida */}
+                <div className="mb-3">
+                  <div className="text-xs font-semibold text-[#475569] mb-2">Estado del tramite</div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {ESTADOS_TRAMITE.map(e => (
+                      <button key={e} onClick={() => actualizarEstado(e)}
+                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all"
+                        style={{ background: selected.estado === e ? (ESTADO_COLOR[e]||"#475569") : "#fff", color: selected.estado === e ? "#fff" : "#475569", borderColor: selected.estado === e ? (ESTADO_COLOR[e]||"#475569") : "#E2E8F0" }}>
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Cambiar canal aduanero */}
                 <div>
-                  <div className="text-xs font-semibold text-[#475569] mb-2">Actualizar canal</div>
+                  <div className="text-xs font-semibold text-[#475569] mb-2">Canal aduanero</div>
                   <div className="flex gap-1.5 flex-wrap">
                     {CANALES.map(c => (
                       <button key={c} onClick={() => actualizarCanal(c)}
@@ -211,8 +266,9 @@ export default function TramitesPage() {
                 <button className="flex items-center justify-center gap-2 bg-white border border-[#E2E8F0] text-[#0F2B5B] text-sm font-medium py-2.5 rounded-xl hover:bg-[#F8FAFC] transition-colors">
                   <FileText size={14} /> Documentos
                 </button>
-                <button className="flex items-center justify-center gap-2 bg-[#0D7A3E] text-white text-sm font-medium py-2.5 rounded-xl hover:bg-[#0a6233] transition-colors">
-                  <Package size={14} /> Notificar WA
+                <button onClick={() => selected && abrirWa(selected)}
+                  className="flex items-center justify-center gap-2 bg-[#0D7A3E] text-white text-sm font-medium py-2.5 rounded-xl hover:bg-[#0a6233] transition-colors">
+                  <MessageCircle size={14} /> Notificar WA
                 </button>
               </div>
 
@@ -305,6 +361,45 @@ export default function TramitesPage() {
               <button onClick={guardar} disabled={saving || !form.dim.trim()}
                 className="bg-[#1E6FD9] text-white text-sm font-medium py-2.5 rounded-lg disabled:opacity-50 flex items-center justify-center gap-2">
                 {saving ? <><Loader2 size={14} className="animate-spin" />Guardando...</> : "Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal WhatsApp */}
+      {showWa && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-[#0F2B5B]">Notificar por WhatsApp</h2>
+              <button onClick={() => setShowWa(false)} className="text-[#94A3B8] hover:text-[#475569]"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-[#475569] block mb-1.5">Número WhatsApp del cliente</label>
+                <input value={waTel} onChange={e => setWaTel(e.target.value)} placeholder="+591 7XXXXXXX"
+                  className="w-full px-3 py-2.5 border border-[#E2E8F0] rounded-lg text-sm font-mono text-[#0F2B5B] focus:border-[#1E6FD9] focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#475569] block mb-1.5">Mensaje</label>
+                <textarea value={waMsg} onChange={e => setWaMsg(e.target.value)} rows={4}
+                  className="w-full px-3 py-2.5 border border-[#E2E8F0] rounded-lg text-sm text-[#0F2B5B] focus:border-[#1E6FD9] focus:outline-none resize-none" />
+              </div>
+              {waOk && (
+                <div className="flex items-center gap-2 bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl px-4 py-3 text-sm text-[#0D7A3E] font-medium">
+                  <Check size={15} /> Mensaje enviado correctamente
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-5">
+              <button onClick={() => setShowWa(false)}
+                className="border border-[#E2E8F0] text-[#475569] text-sm font-medium py-2.5 rounded-lg hover:bg-[#F8FAFC] transition-colors">
+                Cancelar
+              </button>
+              <button onClick={enviarWa} disabled={sendingWa || !waTel || waOk}
+                className="bg-[#0D7A3E] text-white text-sm font-medium py-2.5 rounded-lg disabled:opacity-50 flex items-center justify-center gap-2">
+                {sendingWa ? <><Loader2 size={14} className="animate-spin"/>Enviando...</> : <><MessageCircle size={14}/>Enviar</>}
               </button>
             </div>
           </div>
