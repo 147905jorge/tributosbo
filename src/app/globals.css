@@ -27,6 +27,45 @@ body {
 }
 
 ::-webkit-scrollbar { width: 6px; }
+
+/* ── Jspreadsheet overrides para TributosBO ─────────────────────── */
+.jss_container {
+  font-size: 12px;
+  font-family: inherit;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.jss thead td {
+  background: #F2F4F7 !important;
+  color: #374151 !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 2px solid #D1D5DB !important;
+}
+.jss tbody td {
+  border-right: 1px solid #E5E7EB;
+  border-bottom: 1px solid #E5E7EB;
+  color: #1a1a1a;
+}
+.jss tbody tr:nth-child(even) td {
+  background: #FAFBFC;
+}
+.jss tbody tr:hover td {
+  background: #EFF6FF !important;
+}
+.jss tbody td.highlight {
+  background: #DBEAFE !important;
+}
+.jss_corner {
+  background: #F2F4F7 !important;
+}
+.jss_content {
+  max-height: 400px;
+  overflow: auto;
+}
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 9999px; }
 

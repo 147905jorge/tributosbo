@@ -30,6 +30,8 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
   }
   const auth = req.headers.get("authorization")
   if (auth) headers["Authorization"] = auth
+  const apiKey = req.headers.get("x-api-key")
+  if (apiKey) headers["x-api-key"] = apiKey
 
   const init: RequestInit = { method: req.method, headers }
 

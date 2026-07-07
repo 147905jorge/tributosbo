@@ -178,9 +178,12 @@ export default function BotPage() {
         </button>
       </div>
 
-      <p className="text-center text-[10px] text-[#94A3B8] mt-2">
-        ADEX responde basado en normativa boliviana vigente. Verifica siempre con la Aduana Nacional ante casos específicos.
-      </p>
+      <div className="mt-2 bg-[#FFF7ED] border border-[#FED7AA] rounded-lg px-3 py-2 flex gap-2 items-start">
+        <span className="text-[#C8500A] text-xs mt-0.5 flex-shrink-0">⚠</span>
+        <p className="text-[10px] text-[#92400E] leading-relaxed">
+          <strong>Información orientativa.</strong> Las respuestas se basan en la normativa aduanera boliviana compilada en la base de conocimiento ADEX. Para declaraciones oficiales, liquidaciones con efecto legal o casos específicos, verifica siempre con la <strong>Aduana Nacional de Bolivia</strong> (www.aduana.gob.bo) o tu despachante autorizado. JCJ Technology no asume responsabilidad por decisiones basadas exclusivamente en este asistente.
+        </p>
+      </div>
     </div>
   )
 }

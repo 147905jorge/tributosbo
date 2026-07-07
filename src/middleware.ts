@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 
 const PUBLIC = ["/", "/login", "/registro"]
+const PROTECTED = ["/app", "/admin"]
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Rutas públicas pasan directo
-  if (PUBLIC.some(p => pathname === p) || !pathname.startsWith("/app")) {
-    return NextResponse.next()
-  }
+  if (PUBLIC.some(p => pathname === p)) return NextResponse.next()
 
-  // Verificar token en cookie (lo guardamos también en cookie desde el cliente)
+  const needsAuth = PROTECTED.some(p => pathname === p || pathname.startsWith(p + "/"))
+  if (!needsAuth) return NextResponse.next()
+
   const token = req.cookies.get("tb_token")?.value
-
   if (!token) {
     const url = req.nextUrl.clone()
     url.pathname = "/login"
@@ -23,5 +22,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*"],
+  matcher: ["/app/:path*", "/admin/:path*", "/admin"],
 }

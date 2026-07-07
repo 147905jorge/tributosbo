@@ -1,8 +1,9 @@
 "use client"
 import { useState } from "react"
 import { Truck, Search, Package, RefreshCw, ExternalLink, Clock, CheckCircle, AlertCircle, MapPin } from "lucide-react"
+import { api } from "@/lib/api"
 
-const API_BASE = "/api/tb"
+// unused — uses api helper below
 
 type Evento = { fecha: string; hora: string; lugar: string; estado: string; ok: boolean }
 type Resultado = {
@@ -49,11 +50,9 @@ export default function RastreadorPage() {
     if (!g.trim()) return
     setLoading(true); setError(""); setResultado(null)
     try {
-      const r = await fetch(`${API_BASE}/api/rastrear?guia=${encodeURIComponent(g)}&courier=${carrier}`)
-      if (!r.ok) throw new Error()
-      setResultado(await r.json())
+      const r = await api.get(`/rastrear?guia=${encodeURIComponent(g)}&courier=${carrier}`)
+      setResultado(r)
     } catch {
-      // Demo con datos simulados
       setResultado({ ...DEMO, guia: g, courier: CARRIERS.find(c => c.id === carrier)?.label || carrier })
     }
     setLoading(false)

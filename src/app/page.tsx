@@ -54,7 +54,7 @@ export default function LandingPage() {
             })}
           </div>
           <div className="hidden md:flex" style={{ alignItems: "center", gap: 12, flexShrink: 0 }}>
-            <Link href="/app/dashboard" style={{ color: "#475569", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>Iniciar sesión</Link>
+            <Link href="/login" style={{ color: "#475569", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>Iniciar sesión</Link>
             <Link href="/app/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#1E6FD9", color: "#fff", fontSize: 14, fontWeight: 600, padding: "9px 18px", borderRadius: 8, textDecoration: "none" }}>
               Prueba gratis 14 días
             </Link>
@@ -354,13 +354,16 @@ export default function LandingPage() {
             <p style={{ fontSize: 13, color: "#7C94CA", lineHeight: 1.6 }}>Plataforma SaaS de herramientas aduaneras para Bolivia y Latinoamérica.</p>
           </div>
           {[
-            { title: "Producto", links: ["Herramientas", "Precios", "Actualizaciones", "Documentación"] },
-            { title: "Empresa",  links: ["Acerca de", "Contacto", "Blog", "Casos de uso"] },
-            { title: "Legal",    links: ["Privacidad", "Términos", "Cookies"] },
+            { title: "Producto", links: ["Herramientas:#herramientas", "Precios:#precios", "FAQ:#faq"] },
+            { title: "Empresa",  links: ["Contacto:https://wa.me/59172030560"] },
+            { title: "Legal",    links: ["Privacidad:/privacidad", "Términos:/terminos"] },
           ].map(col => (
             <div key={col.title}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#fff", margin: "0 0 14px" }}>{col.title}</div>
-              {col.links.map(l => <a key={l} href="#" style={{ display: "block", color: "#7C94CA", fontSize: 13, textDecoration: "none", marginBottom: 8 }}>{l}</a>)}
+              {col.links.map(l => {
+                const [label, href] = l.split(":")
+                return <a key={l} href={href} style={{ display: "block", color: "#7C94CA", fontSize: 13, textDecoration: "none", marginBottom: 8 }}>{label}</a>
+              })}
             </div>
           ))}
         </div>

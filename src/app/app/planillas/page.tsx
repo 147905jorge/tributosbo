@@ -1,7 +1,8 @@
 "use client"
 import { useState } from "react"
-import { FileText, Download, MessageCircle, Plus, Trash2, Calculator, Printer } from "lucide-react"
+import { FileText, MessageCircle, Plus, Trash2, Calculator, Printer, X, Loader2, Check } from "lucide-react"
 import { getUser } from "@/lib/auth"
+import { api } from "@/lib/api"
 
 type Linea = { desc: string; valor: number }
 
@@ -22,6 +23,10 @@ export default function PlanillasPage() {
   ])
 
   const user = getUser()
+  const [showWa,    setShowWa]    = useState(false)
+  const [waTel,     setWaTel]     = useState("")
+  const [sendingWa, setSendingWa] = useState(false)
+  const [waOk,      setWaOk]      = useState(false)
   const subtotal = lineas.reduce((s, l) => s + l.valor, 0)
   const iva      = subtotal * 0.13
   const total    = subtotal + iva
@@ -34,7 +39,27 @@ export default function PlanillasPage() {
 
   const fmt = (v: number) => "$ " + v.toLocaleString("es-BO", { minimumFractionDigits: 2 })
 
+  async function generarYImprimir() {
+    try { await api.post("/planillas", { tipo, dim, subtotal, total }) } catch {}
+    window.print()
+  }
+
+  async function enviarWa() {
+    if (!waTel) return
+    setSendingWa(true)
+    const msg = `${user?.empresa || "TributosBO"} — ${tipo}\nCliente: ${cliente || "—"}\nTotal: ${fmt(total)}\nFecha: ${new Date().toLocaleDateString("es-BO")}`
+    try {
+      const r = await api.post("/whatsapp/enviar", { telefono: waTel, mensaje: msg })
+      if (r.url) window.open(r.url, "_blank")
+      setWaOk(true)
+      setTimeout(() => { setWaOk(false); setShowWa(false) }, 2000)
+    } catch { alert("Error enviando WhatsApp") }
+    setSendingWa(false)
+  }
+
   return (
+    <>
+    <style>{`@media print { .no-print { display: none !important; } #print-area { box-shadow: none !important; } }`}</style>
     <div className="max-w-6xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#0F2B5B]">Generador de Planillas</h1>
@@ -121,12 +146,12 @@ export default function PlanillasPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 bg-[#0F2B5B] text-white text-sm font-semibold py-3 rounded-xl hover:bg-[#1A3560] transition-colors">
+            <button onClick={generarYImprimir} className="flex items-center justify-center gap-2 bg-[#0F2B5B] text-white text-sm font-semibold py-3 rounded-xl hover:bg-[#1A3560] transition-colors">
               <FileText size={16} /> Generar PDF
             </button>
-            <button className="flex items-center justify-center gap-2 border border-[#E2E8F0] text-[#0F2B5B] text-sm font-medium py-3 rounded-xl hover:bg-[#F8FAFC] transition-colors">
+            <a href="/app/calculadora" className="flex items-center justify-center gap-2 border border-[#E2E8F0] text-[#0F2B5B] text-sm font-medium py-3 rounded-xl hover:bg-[#F8FAFC] transition-colors">
               <Calculator size={16} /> Ir a calculadora
-            </button>
+            </a>
           </div>
         </div>
 
@@ -193,7 +218,8 @@ export default function PlanillasPage() {
                 className="flex items-center justify-center gap-2 bg-[#0F2B5B] text-white text-xs font-medium py-2.5 rounded-lg hover:bg-[#1A3560] transition-colors">
                 <Printer size={13} /> Imprimir / PDF
               </button>
-              <button className="flex items-center justify-center gap-2 bg-[#0D7A3E] text-white text-xs font-medium py-2.5 rounded-lg hover:bg-[#0a6233] transition-colors">
+              <button onClick={() => setShowWa(true)}
+                className="flex items-center justify-center gap-2 bg-[#0D7A3E] text-white text-xs font-medium py-2.5 rounded-lg hover:bg-[#0a6233] transition-colors">
                 <MessageCircle size={13} /> Enviar por WA
               </button>
             </div>
@@ -201,5 +227,33 @@ export default function PlanillasPage() {
         </div>
       </div>
     </div>
+
+      {/* Modal WA */}
+      {showWa && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-[#0F2B5B]">Enviar cotización por WhatsApp</h2>
+              <button onClick={() => setShowWa(false)} className="text-[#94A3B8] hover:text-[#475569]"><X size={18} /></button>
+            </div>
+            <label className="text-xs font-semibold text-[#475569] block mb-1.5">Número del cliente</label>
+            <input value={waTel} onChange={e => setWaTel(e.target.value)} placeholder="+591 7XXXXXXX"
+              className="w-full px-3 py-2.5 border border-[#E2E8F0] rounded-lg text-sm font-mono text-[#0F2B5B] focus:border-[#1E6FD9] focus:outline-none mb-4" />
+            {waOk && (
+              <div className="flex items-center gap-2 bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl px-4 py-3 text-sm text-[#0D7A3E] font-medium mb-4">
+                <Check size={14} /> Enviado correctamente
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => setShowWa(false)} className="border border-[#E2E8F0] text-[#475569] text-sm font-medium py-2.5 rounded-lg">Cancelar</button>
+              <button onClick={enviarWa} disabled={sendingWa || !waTel || waOk}
+                className="bg-[#0D7A3E] text-white text-sm font-medium py-2.5 rounded-lg disabled:opacity-50 flex items-center justify-center gap-2">
+                {sendingWa ? <><Loader2 size={13} className="animate-spin"/>Enviando...</> : <><MessageCircle size={13}/>Enviar</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

@@ -1,32 +1,63 @@
 "use client"
 import { useState, useRef } from "react"
 import { Upload, Check, Wifi, WifiOff, RefreshCw, Save, MessageCircle, Palette, Building, Bell } from "lucide-react"
+import { api } from "@/lib/api"
+import { getUser, setUser } from "@/lib/auth"
 
 const TABS = ["Identidad", "Documentos", "WhatsApp", "Notificaciones"] as const
 type Tab = typeof TABS[number]
 
 export default function ConfigPage() {
+  const user = getUser()
   const [tab,        setTab]        = useState<Tab>("Identidad")
   const [saved,      setSaved]      = useState(false)
+  const [saving,     setSaving]     = useState(false)
+  const [errSave,    setErrSave]    = useState("")
   const [waStatus,   setWaStatus]   = useState<"desconectado" | "conectando" | "conectado">("desconectado")
   const [showQr,     setShowQr]     = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Config state
-  const [empresa,   setEmpresa]   = useState("Agencia Demo S.R.L.")
+  // Config state — carga desde el usuario actual
+  const [empresa,   setEmpresa]   = useState(user?.empresa    || "Mi Agencia")
   const [tagline,   setTagline]   = useState("Despachantes de Aduana")
-  const [color,     setColor]     = useState("#0F2B5B")
-  const [acento,    setAcento]    = useState("#1E6FD9")
+  const [color,     setColor]     = useState(user?.color_prim  || "#0F2B5B")
+  const [acento,    setAcento]    = useState(user?.color_acento|| "#1E6FD9")
   const [logoName,  setLogoName]  = useState("")
+  const [logoUrl,   setLogoUrl]   = useState<string>(user?.logo_url || "")
   const [registro,  setRegistro]  = useState("DA-2024-001234")
   const [telefono,  setTelefono]  = useState("+591 2 2345678")
-  const [email,     setEmail]     = useState("contacto@agencia.com")
+  const [email,     setEmail]     = useState(user?.email       || "contacto@agencia.com")
   const [ciudad,    setCiudad]    = useState("La Paz, Bolivia")
-  const [plantilla, setPlantilla] = useState("Estimado {nombre}, tu trámite {dim} está en canal {canal}.")
+  const [plantilla,   setPlantilla]   = useState("Estimado {nombre}, tu trámite {dim} está en canal {canal}.")
+  const [openwaKey,   setOpenwaKey]   = useState("")
+  const [openwaSaved, setOpenwaSaved] = useState(false)
 
-  function guardar() {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+  async function guardar() {
+    setSaving(true); setErrSave("")
+    try {
+      const body: Record<string, string> = {
+        nombre: empresa, color_prim: color, color_acento: acento,
+        tagline, registro, telefono_contacto: telefono, ciudad
+      }
+      if (logoUrl) body.logo_url = logoUrl
+      await api.patch("/empresa/config", body)
+      if (user) setUser({ ...user, empresa, color_prim: color, color_acento: acento, logo_url: logoUrl || user.logo_url })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (e: unknown) {
+      setErrSave(e instanceof Error ? e.message : "Error al guardar")
+    }
+    setSaving(false)
+  }
+
+  async function guardarOpenwaKey() {
+    if (!openwaKey.trim()) return
+    try {
+      await api.patch("/empresa/config", { openwa_key: openwaKey })
+      setOpenwaSaved(true)
+      setOpenwaKey("")
+      setTimeout(() => setOpenwaSaved(false), 3000)
+    } catch { /* silencioso */ }
   }
 
   function simularConexionWa() {
@@ -79,10 +110,21 @@ export default function ConfigPage() {
             <div className="bg-white border border-[#E2E8F0] rounded-xl p-5">
               <h3 className="font-semibold text-[#0F2B5B] text-sm mb-4">Logo de la agencia</h3>
               <input ref={fileRef} type="file" accept="image/*" className="hidden"
-                onChange={e => setLogoName(e.target.files?.[0]?.name || "")} />
+                onChange={e => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  if (file.size > 2 * 1024 * 1024) { alert("El archivo supera 2MB"); return }
+                  setLogoName(file.name)
+                  const reader = new FileReader()
+                  reader.onload = () => setLogoUrl(reader.result as string)
+                  reader.readAsDataURL(file)
+                }} />
               <div className="border-2 border-dashed border-[#E2E8F0] rounded-xl p-8 text-center cursor-pointer hover:border-[#1E6FD9] transition-colors"
                    onClick={() => fileRef.current?.click()}>
-                <Upload size={28} className="text-[#94A3B8] mx-auto mb-3" />
+                {logoUrl
+                  ? <img src={logoUrl} alt="Logo" className="h-16 mx-auto mb-2 object-contain" />
+                  : <Upload size={28} className="text-[#94A3B8] mx-auto mb-3" />
+                }
                 {logoName
                   ? <p className="text-sm font-medium text-[#0D7A3E]">{logoName}</p>
                   : <>
@@ -142,8 +184,11 @@ export default function ConfigPage() {
                 {/* Mini sidebar */}
                 <div style={{ background: color }} className="p-3">
                   <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
-                    <div className="w-7 h-7 bg-white rounded-md flex items-center justify-center text-[10px] font-bold" style={{ color }}>
-                      {empresa.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase()}
+                    <div className="w-7 h-7 bg-white rounded-md flex items-center justify-center overflow-hidden text-[10px] font-bold" style={{ color }}>
+                      {logoUrl
+                        ? <img src={logoUrl} alt="" className="w-full h-full object-contain" />
+                        : empresa.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase()
+                      }
                     </div>
                     <span className="text-white text-xs font-semibold truncate">{empresa}</span>
                   </div>
@@ -257,6 +302,27 @@ export default function ConfigPage() {
                 <p className="text-xs text-[#94A3B8] mt-2">El código expira en 60 segundos</p>
               </div>
             )}
+          </div>
+
+          {/* API Key OpenWA */}
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-5">
+            <h3 className="font-semibold text-[#0F2B5B] text-sm mb-1">Envío automático (OpenWA)</h3>
+            <p className="text-xs text-[#94A3B8] mb-3">
+              Sin API key, las alertas se abren como enlace wa.me. Con API key, se envían automáticamente sin intervención.
+            </p>
+            <div className="flex gap-2">
+              <input type="password" value={openwaKey} onChange={e => setOpenwaKey(e.target.value)}
+                placeholder="Ingresa tu API key de OpenWA..."
+                className="flex-1 px-3 py-2.5 border border-[#E2E8F0] rounded-lg text-sm text-[#0F2B5B] focus:border-[#1E6FD9] focus:outline-none transition-colors font-mono" />
+              <button onClick={guardarOpenwaKey} disabled={!openwaKey.trim()}
+                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-40 transition-opacity"
+                style={{ background: openwaSaved ? "#0D7A3E" : "#1E6FD9" }}>
+                {openwaSaved ? <><Check size={14} className="inline mr-1" />Guardado</> : "Guardar"}
+              </button>
+            </div>
+            <p className="text-xs text-[#94A3B8] mt-2">
+              La clave se almacena cifrada. Requiere instancia de OpenWA corriendo en el servidor.
+            </p>
           </div>
 
           {/* Plantillas */}
